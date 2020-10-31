@@ -1,0 +1,176 @@
+---
+title: "<center> Assignment8 <center>"
+subtitle: "<center> Simulation of Orstein-Unlenbeck Process <center> "
+author: "<center> Zihan Qi <center>"
+date: "<center> 10/30/2020 <center>"
+output: 
+  pdf_document: default
+  html_document: 
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+options(width=200)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, tidy=TRUE)
+```
+
+# Orstein-Unlenbeck Process
+
+Consider the Ornstein-Uhlenbeck process
+
+\begin{align*}
+dr(t) = \alpha(b - r(t)) dt + \sigma dW(t)
+\end{align*}
+
+where $\alpha > 0$, $\sigma>0$, and $b$ are constants.
+
+
+## Question 1
+Show that for $t>0$ and $\Delta>0$,
+\begin{align*}
+r(t+\Delta)= e^{-\alpha\Delta} r(t) + b(1-e^{-\alpha\Delta}) +      
+             \frac{\sigma}{\sqrt{2\alpha}} \sqrt{1-e^{-2\alpha\Delta}} Z  \\
+\end{align*}
+  where $Z\sim N(0,1)$.
+
+
+### Solution:
+We first recall Ito's formula
+\begin{align*}
+dV = \frac{\partial V}{\partial t} dt + \frac{\partial V}{\partial r} dr 
+      + \frac{1}{2} \frac{\partial^2 V}{\partial r^2} dr^2 \\
+\end{align*}
+
+And we set $V=e^{\alpha t} * (r(t) - b)$, so that we have:
+$\frac{\partial V}{\partial t} = \alpha * e^{\alpha t} * (r(t) - b)$,
+$\frac{\partial V}{\partial r} = e^{\alpha t}$,
+$\frac{\partial^2 V}{\partial r^2} = 0$
+
+Then:
+\begin{align*}
+dV &= \alpha e^{\alpha t} (r(t) - b) dt + e^{\alpha t} dr \\
+&= \alpha e^{\alpha t} (r(t) - b) dt + e^{\alpha t} (\alpha (b - r(t)) dt + \sigma dW(t)) \\
+&= e^{\alpha t} \sigma dW(t)
+\end{align*}
+
+Then we take integral on both sides:
+\begin{align*}
+\int_{t}^{t+\Delta} dV(u) = \int_{t}^{t+\Delta} e^{\alpha u} \sigma dW(u) \\
+V(t+\Delta) - V(t) = \int_{t}^{t+\Delta} e^{\alpha u} \sigma dW(u) \\
+e^{\alpha (t+\Delta)} * (r(t+\Delta) - b) - e^{\alpha t} * (r(t) - b) = \int_{t}^{t+\Delta} e^{\alpha u} \sigma dW(u) \\
+r(t+\Delta) - b = e^{- \alpha \Delta} (r(t) - b) + \int_{t}^{t+\Delta} e^{- \alpha (t+\Delta-u)} \sigma dW(u) \\
+r(t+\Delta) = e^{- \alpha \Delta} r(t) + b(1-e^{- \alpha \Delta}) +  \int_{t}^{t+\Delta} e^{- \alpha (t+\Delta-u)} \sigma dW(u)
+\end{align*}
+
+Then we recall that $\int_{a}^{b}f(t)dW(t) = N[0, \int_{a}^{b} f(t)^2 dt]$, therefore:
+\begin{align*}
+\int_{t}^{t+\Delta} e^{- \alpha (t+\Delta-u)} \sigma dW(u) &= N[0, \int_{t}^{t+\Delta} e^{-2 \alpha (t+\Delta-u)} \sigma^2] \\
+&= N[0, \sigma^2 \frac{1-e^{-2 \alpha \Delta}}{2 \alpha}] \\
+&= \sigma \sqrt \frac{1-e^{-2 \alpha \Delta}}{2 \alpha} N[0,1]
+\end{align*}
+
+As a result, we conclude that
+\begin{align*}
+r(t+\Delta) = e^{- \alpha \Delta} r(t) + b(1-e^{- \alpha \Delta}) + \sigma \sqrt \frac{1-e^{-2 \alpha \Delta}}{2 \alpha} Z
+\end{align*}
+
+
+## Question 2
+
+For $\alpha \in \{0.1, 1, 5\}$, $\sigma \in \{0.1, 0.2, 0.5\}$, $b \in \{-5, 5\}$, there are $3*3*2 = 18$ combinations of the results. So we will conclude 18 graphs of sample path for the O-U process.
+```{r}
+alpha_1 <- c(rep(0.1,6), rep(1,6), rep(5,6))
+sigma_1 <- rep(c(0.1,0.2,0.5),6)
+b_1 <- rep(c(rep(-5,3), rep(5,3)),3)
+r <- c()
+
+O_U_process <- function(alpha, sigma, b, r0, Tt, delta){
+  r[1] <- r0
+  i <- 1
+  for(i in 1:(1/delta)){
+    z <- rnorm(1)
+    r[i+1] <- exp(-alpha * delta) * r[i] + b * (1 - exp(-alpha * delta)) + 
+              sigma * sqrt((1-exp(-2 * alpha * delta)) / (2 * alpha)) * z
+    i <- i+1
+  }
+  return(r)
+}
+
+for(i in 1:18){
+  result <- O_U_process(alpha_1[i], sigma_1[i], b_1[i], 1, 500, 1/500)
+  plot(result, type = "l", xlab = "Time Length", ylab = "r(t)", 
+       main = paste0("O-U Process of alpha = " , alpha_1[i], ", sigma = ", sigma_1[i], ", b = ", b_1[i]))
+}
+```
+
+
+From the graph, we conclude that the sign of the graph slope is determined by $b$ (trending up or down), $\sigma$ determined the volatility of the graph and $\alpha$ determined if how the graph is curved. 
+
+## Question 3
+
+We simulate the result by this Euler-Maruyama method: $r(t+\Delta) = r(t) + \alpha (b - r(t)) \delta + \sigma dW$, where $dW$ are identically and independent normal random variables with a mean of 0 and variance of $\delta^2$. In this question, we set $\alpha = 1$, $\sigma = 0.2$, $b = 5$, $r(0) = 1$ and $n=1000$. Therefore:
+
+```{r}
+d <- c(1,0.5,0.1,0.01)
+alpha_2 <- 1
+sigma_2 <- 0.2
+b_2 <- 5
+r_2 <- 1
+n <- 1000
+
+Euler_Maruyama <- function(alpha, sigma, b, r0, delta, n){
+  for(i in 1:n){
+    u <- c()
+    u[1] <- r0
+    for (j in 1:(1/delta)){
+      dw <- rnorm(1, mean = 0, sd = delta)
+      u[j+1] <- u[j] + alpha * (b - u[j]) * delta + sigma * dw
+      j <- j + 1
+    }
+  }
+  u
+}
+
+plot(density(Euler_Maruyama(alpha_2, sigma_2, b_2, r_2, d[1], n)), 
+     xlab = "r", ylab = "density", main = "Kernal Density and True Density of O_U_Process with delta = 1", 
+     col = "blue", xlim = c(-2,8), ylim = c(0,0.5))
+par(new=TRUE)
+plot(density(O_U_process(alpha_2, sigma_2, b_2, r_2, 1/d[1], d[1])),
+     xlab = "r", ylab = "density", main = "Kernal Density and True Density of O_U_Process with delta = 1",
+     col = "red", xlim = c(-2,8), ylim = c(0,0.5))
+legend("topright", legend = c("kernel density", "True density"), 
+       bty = "n", text.col = c("blue", "red"))
+
+
+plot(density(Euler_Maruyama(alpha_2, sigma_2, b_2, r_2, d[2], n)), 
+     xlab = "r", ylab = "density", main = "Kernal Density and True Density of O_U_Process with delta = 0.5", 
+     col = "blue", xlim = c(-1,6), ylim = c(0,0.5))
+par(new=TRUE)
+plot(density(O_U_process(alpha_2, sigma_2, b_2, r_2, 1/d[2], d[2])), 
+     xlab = "r", ylab = "density", main = "Kernal Density and True Density of O_U_Process with delta = 0.5", 
+     col = "red", xlim = c(-1,6), ylim = c(0,0.5))
+legend("topright", legend = c("kernel density", "True density"), 
+       bty = "n", text.col = c("blue", "red"))
+
+
+plot(density(Euler_Maruyama(alpha_2, sigma_2, b_2, r_2, d[3], n)), 
+     xlab = "r", ylab = "density", main = "Kernal Density and True Density of O_U_Process with delta = 0.1", 
+     col = "blue", xlim = c(-1,6), ylim = c(0,0.5))
+par(new=TRUE)
+plot(density(O_U_process(alpha_2, sigma_2, b_2, r_2, 1/d[3], d[3])),
+     xlab = "r", ylab = "density", main = "Kernal Density and True Density of O_U_Process with delta = 0.1",
+     col = "red", xlim = c(-1,6), ylim = c(0,0.5))
+legend("topright", legend = c("kernel density", "True density"), 
+       bty = "n", text.col = c("blue", "red"))
+
+
+plot(density(Euler_Maruyama(alpha_2, sigma_2, b_2, r_2, d[4], n)), 
+     xlab = "r", ylab = "density", main = "Kernal Density and True Density of O_U_Process with delta = 0.01", 
+     col = "blue", xlim = c(-1,6), ylim = c(0,0.5))
+par(new=TRUE)
+plot(density(O_U_process(alpha_2, sigma_2, b_2, r_2, 1/d[4], d[4])), 
+     xlab = "r", ylab = "density", main = "Kernal Density and True Density of O_U_Process with delta = 0.01", 
+     col = "red", xlim = c(-1,6), ylim = c(0,0.5))
+legend("topright", legend = c("kernel density", "True density"), 
+       bty = "n", text.col = c("blue", "red"))
+```
