@@ -14,7 +14,7 @@ options(width=200)
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, tidy=TRUE)
 ```
 
-# Orstein-Unlenbeck Process
+# 1. Orstein-Unlenbeck Process
 
 Consider the Ornstein-Uhlenbeck process
 
@@ -174,3 +174,49 @@ plot(density(O_U_process(alpha_2, sigma_2, b_2, r_2, 1/d[4], d[4])),
 legend("topright", legend = c("kernel density", "True density"), 
        bty = "n", text.col = c("blue", "red"))
 ```
+
+# 2. Poisson Process
+
+Let $\lambda(t) = \sqrt{t} + e^{-t} \sin(2 \pi t)$ be the intensity function of Poisson process over $t \in [0, 5]$. Let $N(t)$ be the number of events by time $t$.
+
+## 1. What is the distribution of $N(5)$ and its parameter(s)? Use Mathematica or Maple for integration if needed.
+
+We have $\lambda(t) = \sqrt{t} + e^{-t} \sin(2 \pi t)$, so the distribution of of $N(5)$ follows a Poisson distribution with mean = $\int_0^5 \lambda(t) dt$
+
+From Wolfram Mathematica, we have $\int (\sqrt{t} + e^{-t} \sin(2 \pi t)) = \frac {e^{-t} (2(1+4\pi^2) e^{t} t^{3/2} - 3 \sin(2\pi t) - 6 \pi \cos(2\pi t))} {3(1+4\pi^2)}$, which in our case,$\int_{0}^{5} (\sqrt{t} + e^{-t} \sin(2 \pi t)) \approx 7.6077$
+
+## 2. Write a function to simulate from this Poisson process
+We use the thinning method which described in the class
+
+```{r}
+rnhpp <- function(intensity, intmax, tmax){
+  n <- rpois(1, intmax)
+  tt <- runif(n, 0, tmax)
+  u <- runif(n)
+  accept <- u < intensity(tt) / intmax
+  return (list(sort(tt[accept]), intensity(tt) / intmax))
+}
+
+intfun <- function(t) sqrt(t) + exp(-t) * sin(2 * pi * t)
+
+a <- optimize(intfun, interval=c(0,5), maximum = TRUE)
+m <- a$objective
+
+ff <- rnhpp(intfun, m, 5)
+ff
+
+```
+We therefore implement the function and showed one example of the simulated poisson process.
+
+## 3.Generate events from this Poisson process 1,000 times. Pool all the event points together as a sample and plot their kernel density. Overlay $\lambda(t) / \int_0^5 \lambda(s) ds$ with the kernel density.
+
+```{r}
+
+wfun1 <- unlist(replicate(1000, rnhpp(intfun, m, 5)[1]))
+wfun2 <- unlist(replicate(1000, rnhpp(intfun, m, 5)[2]))
+
+hist(wfun1, main = "Histogram of the simulated Poisson Process")
+plot(density(wfun1), xlim = c(0,5), main = "Kernal density of the simulated Poisson Process", xlab = "t", ylab = "Density", col = "red")
+plot(density(wfun2), main = "Density of lambda(t) / lambda(max)", xlab = "lambda(t)/lambda(max)", ylab = "Density", col = "blue")
+```
+
